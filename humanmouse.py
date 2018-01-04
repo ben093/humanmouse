@@ -9,16 +9,21 @@ import pyautogui
 import math
 import random
 
+import logging
+
+logging.basicConfig(format='%(levelname)s:%(message)s', filename="dump.txt", level=logging.DEBUG)
+
 def init():
     pyautogui.PAUSE=1 #set 1 second pause after each call.
     size = pyautogui.size()
     pyautogui.FAILSAFE = True
     print("monitor size: " + str(size))
+    
 
 
 def getPosition():
     pos = pyautogui.position()
-    print(pos)
+    log(pos)
     return pos
     
 def gotoMiddle():
@@ -28,23 +33,24 @@ def gotoMiddle():
     pyautogui.moveTo(centerX,centerY,3)
     
 def moveToPoint(paranoid=0):
+    log("func: moveToPoint()")
     startx, starty = pyautogui.position()
     #find x2 and y2 - using center for now
     width, height = pyautogui.size()
     endx = width/2
     endy = height/2
-    print("end point: (%s, %s)" %(endx, endy))
+    log("end point: (%s, %s)" %(endx, endy))
     if paranoid == 0:
         #distance formula to get distance from cursor position
         #total_dist = math.sqrt((endx-startx)**2 + (endy-starty)**2)
         total_dist = distFormula(startx, starty, endx, endy)
-        print("distance: %s" % total_dist)
+        log("distance: %s" % total_dist)
         
         #randomize time divider for varying movements.
         t_divider = timeDiv()
         
         total_time = total_dist / t_divider
-        print("calculated time: %s seconds" %total_time)
+        log("calculated time: %s seconds" %total_time)
         
         pyautogui.moveTo(endx,endy,total_time, pyautogui.easeOutQuad)
     elif paranoid == 1:
@@ -58,11 +64,11 @@ def moveToPoint(paranoid=0):
             tary = pickRand(cury, endy) #pick random y in between
             #dist = math.sqrt((tarx-curx)**2 + (tary-cury)**2)
             dist = distFormula(curx, cury, tarx, tary)
-            print("rand point: (%s, %s)" %(tarx, tary))
+            log("rand point: (%s, %s)" %(tarx, tary))
             t_divider = timeDiv()
         
             time = dist / t_divider
-            #print("calculated time: %s seconds" %time)
+            log("calculated time: %s seconds" %time)
             
             # case so it never takes a long time (adds rounding)
             if startx <= endx and abs(tarx) >= abs(endx) * 0.975: tarx = endx
@@ -70,7 +76,7 @@ def moveToPoint(paranoid=0):
             if startx >= endx and abs(tarx) <= abs(endx) * 1.025: tarx = endx
             if starty >= endy and abs(tary) <= abs(endy) * 1.025: tary = endy
             
-            print("moving to: (%s,%s)"% (tarx, tary))
+            log("moving to: (%s,%s)"% (tarx, tary))
             pyautogui.moveTo(tarx, tary, time)
             #update current position
             curx = tarx
@@ -82,7 +88,7 @@ def pickRand(val1, val2):
     if val1 == val2:
         return val2
     elif(val1 < val2):
-        return random.randrange(val1,val2)
+        return random.randrange(val1, val2)
     elif(val1 > val2):
         return random.randrange(val2, val1)
 
@@ -91,10 +97,15 @@ def distFormula(x1, y1, x2, y2):
     return val
 
 def timeDiv():
-    val = random.randrange(800,1500) #change this for different rand times
+    val = random.randrange(800, 1500) #change this for different rand times
     #print("random time divider: %s" %val)
     return  val
+
+def log(msg="default message",console=1,file=1):
+    if console == 1: print(msg)
+    if file == 1: logging.debug(msg)
     
+# garbage below. Testing pyautogui library    
 def openCalculator():
     pyautogui.press('win')
     pyautogui.typewrite('calculator')
