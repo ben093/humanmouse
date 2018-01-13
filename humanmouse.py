@@ -18,8 +18,6 @@ def init():
     size = pyautogui.size()
     pyautogui.FAILSAFE = True
     print("monitor size: " + str(size))
-    
-
 
 def getPosition():
     pos = pyautogui.position()
@@ -32,7 +30,7 @@ def gotoMiddle():
     centerY = height/2
     pyautogui.moveTo(centerX,centerY,3)
     
-def moveToPoint(paranoid=0):
+def moveToPoint(method=0):
     log("func: moveToPoint()")
     startx, starty = pyautogui.position()
     #find x2 and y2 - using center for now
@@ -40,9 +38,9 @@ def moveToPoint(paranoid=0):
     endx = width/2
     endy = height/2
     log("end point: (%s, %s)" %(endx, endy))
-    if paranoid == 0:
+    if method == 0:
+        #go straight to position
         #distance formula to get distance from cursor position
-        #total_dist = math.sqrt((endx-startx)**2 + (endy-starty)**2)
         total_dist = distFormula(startx, starty, endx, endy)
         log("distance: %s" % total_dist)
         
@@ -53,24 +51,24 @@ def moveToPoint(paranoid=0):
         log("calculated time: %s seconds" %total_time)
         
         pyautogui.moveTo(endx,endy,total_time, pyautogui.easeOutQuad)
-    elif paranoid == 1:
-        #use different datapoints along/near the path to (endx, endy)
+    elif method == 1:
+        #use random datapoints between (startx, starty) to (endx, endy)
         curx = startx
         cury = starty 
         tarx = endx
         tary = endy
         while curx != endx or cury != endy: #while not at destination
-            tarx = pickRand(curx, endx) #pick random x in between
-            tary = pickRand(cury, endy) #pick random y in between
-            #dist = math.sqrt((tarx-curx)**2 + (tary-cury)**2)
-            dist = distFormula(curx, cury, tarx, tary)
+            tarx = pickRandPositive(curx, endx) #pick random x in between
+            tary = pickRandPositive(cury, endy) #pick random y in between
             log("rand point: (%s, %s)" %(tarx, tary))
+            
+            dist = distFormula(curx, cury, tarx, tary)            
             t_divider = timeDiv()
         
             time = dist / t_divider
             log("calculated time: %s seconds" %time)
             
-            # case so it never takes a long time (adds rounding)
+            # case so it never takes a long time (adds rounding of 2.5%)
             if startx <= endx and abs(tarx) >= abs(endx) * 0.975: tarx = endx
             if starty <= endy and abs(tary) >= abs(endy) * 0.975: tary = endy
             if startx >= endx and abs(tarx) <= abs(endx) * 1.025: tarx = endx
@@ -81,8 +79,54 @@ def moveToPoint(paranoid=0):
             #update current position
             curx = tarx
             cury = tary
+    elif method == 2:
+        #use threshold and choose points along slope with error = threshold
+        threshold = 10 #random within 10 pixels of direct slope
+        curx = startx
+        cury = starty 
+        tarx = endx
+        tary = endy        
+        num_pts = pickRandPositive(3,12) #pick random number of pts
+        print ("num_pts: %s" % num_pts)
+        x_incr = (endx - startx) / num_pts #calculate increment value
+        y_incr = (endy - starty) / num_pts
+        counter = 0
+        while counter < num_pts:
+            tarx = curx + x_incr           
+            tary = cury + y_incr
+            log("current point: (%s, %s)" % (curx, cury))
+            
+            if counter + 1 is not num_pts: 
+                # if not last iteration, find a target pt randomly
+                log("target point: (%s, %s)" % (tarx, tary))
+                randx = random.randrange(-threshold,threshold)
+                randy = random.randrange(-threshold,threshold)
+                                
+                log("randx: %s" % randx)
+                log("randy: %s" % randy)
+                
+                tarx = tarx + randx
+                tary = tary + randy
+            else:
+                # last iteration, move to end pt
+                tarx = endx
+                tary = endy
+                
+            dist = distFormula(curx, cury, tarx, tary)
+            t_divider = timeDiv()
+        
+            time = dist / t_divider
+            log("calculated time: %s seconds" %time)
+            pyautogui.moveTo(tarx, tary, time)
+            
+            #finished moving
+            curx = tarx
+            cury = tary
+            counter += 1
+        log("final pt: (%s, %s)" % (curx, cury))
+        
 
-def pickRand(val1, val2):
+def pickRandPositive(val1, val2):
     val1 = abs(val1)
     val2 = abs(val2)
     if val1 == val2:
@@ -104,9 +148,3 @@ def timeDiv():
 def log(msg="default message",console=1,file=1):
     if console == 1: print(msg)
     if file == 1: logging.debug(msg)
-    
-# garbage below. Testing pyautogui library    
-def openCalculator():
-    pyautogui.press('win')
-    pyautogui.typewrite('calculator')
-    pyautogui.press('enter')
